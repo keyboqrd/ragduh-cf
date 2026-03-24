@@ -18,7 +18,6 @@
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID |
 | `API_KEY` | API 认证密钥 |
 | `CF_AIG_TOKEN` | AI Gateway Token |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Google Generative AI API Key |
 | `D1_DATABASE_ID` | D1 数据库 ID (main) |
 | `D1_DATABASE_ID_E2E` | D1 数据库 ID (e2e) |
 
