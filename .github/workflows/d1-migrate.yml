@@ -1,0 +1,67 @@
+# D1 Database Migration
+#
+# 触发条件：手动触发
+name: Migrate D1
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境 (main 或 e2e)'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - e2e
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Cloudflare Wrangler
+        run: npm install -g wrangler
+
+      - name: Install API dependencies
+        working-directory: ./ragduh-api
+        run: npm ci
+
+      # ========== 执行 D1 Migration ==========
+      - name: Run D1 Migration (main)
+        if: inputs.environment == 'main'
+        working-directory: ./ragduh-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          sed -i "s|database_id = \"\$D1_DATABASE_ID\"|database_id = \"${D1_DATABASE_ID}\"|" wrangler.toml
+          sed -i "s|CF_ACCOUNT_ID = \"\$CF_ACCOUNT_ID\"|CF_ACCOUNT_ID = \"${CF_ACCOUNT_ID}\"|" wrangler.toml
+          wrangler d1 execute ragduh-db --remote --file=migrations/0000_initial_schema.sql
+
+      - name: Run D1 Migration (e2e)
+        if: inputs.environment == 'e2e'
+        working-directory: ./ragduh-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID_E2E: ${{ secrets.D1_DATABASE_ID_E2E }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          sed -i "s|database_id = \"\$D1_DATABASE_ID_E2E\"|database_id = \"${D1_DATABASE_ID_E2E}\"|" wrangler.e2e.toml
+          sed -i "s|CF_ACCOUNT_ID = \"\$CF_ACCOUNT_ID\"|CF_ACCOUNT_ID = \"${CF_ACCOUNT_ID}\"|" wrangler.e2e.toml
+          wrangler d1 execute ragduh-db-test --remote --file=migrations/0000_initial_schema.sql --config=wrangler.e2e.toml

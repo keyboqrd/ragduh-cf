@@ -1,0 +1,128 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text-h);
+  --color-card: var(--bg);
+  --color-card-foreground: var(--text-h);
+  --color-popover: var(--bg);
+  --color-popover-foreground: var(--text-h);
+  --color-primary: var(--accent);
+  --color-primary-foreground: white;
+  --color-secondary: var(--bg-secondary);
+  --color-secondary-foreground: var(--text-h);
+  --color-muted: var(--bg-secondary);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: white;
+  --color-destructive: var(--error);
+  --color-destructive-foreground: white;
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+:root {
+  /* Colors - Light Mode */
+  --text: #52525b;
+  --text-muted: #71717a;
+  --text-h: #09090b;
+  --bg: #ffffff;
+  --bg-secondary: #f9fafb;
+  --border: #e4e4e7;
+  --border-focus: #a1a1aa;
+  --code-bg: #f3f4f6;
+
+  /* Accent - Purple */
+  --accent: #9333ea;
+  --accent-hover: #7e22ce;
+  --accent-bg: rgba(147, 51, 233, 0.08);
+  --accent-border: rgba(147, 51, 233, 0.3);
+  --accent-glow: rgba(147, 51, 233, 0.15);
+
+  /* Status Colors */
+  --success: #16a34a;
+  --success-bg: rgba(22, 163, 74, 0.1);
+  --error: #dc2626;
+  --error-bg: rgba(220, 38, 38, 0.1);
+  --warning: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.1);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Colors - Dark Mode */
+    --text: #a1a1aa;
+    --text-muted: #71717a;
+    --text-h: #f4f4f5;
+    --bg: #18181b;
+    --bg-secondary: #202024;
+    --border: #27272a;
+    --border-focus: #52525b;
+    --code-bg: #222229;
+
+    /* Accent - Purple */
+    --accent: #a855f7;
+    --accent-hover: #c084fc;
+    --accent-bg: rgba(168, 85, 247, 0.12);
+    --accent-border: rgba(168, 85, 247, 0.4);
+    --accent-glow: rgba(168, 85, 247, 0.2);
+
+    /* Status Colors */
+    --success: #22c55e;
+    --success-bg: rgba(34, 197, 94, 0.15);
+    --error: #ef4444;
+    --error-bg: rgba(239, 68, 68, 0.15);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.15);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+#root {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  border-inline: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow-lg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg-secondary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

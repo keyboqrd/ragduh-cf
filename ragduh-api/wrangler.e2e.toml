@@ -1,0 +1,50 @@
+name = "ragduh-api-e2e"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# E2E Test D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "ragduh-db-test"
+database_id = "$D1_DATABASE_ID_E2E"
+
+# E2E Test Vectorize Index
+[[vectorize]]
+binding = "RAGDUH_VECTORIZE_INDEX"
+index_name = "ragduh-vec-test"
+
+# Workers AI binding for embeddings
+[ai]
+binding = "AI"
+
+# Queue configuration for E2E tests
+[[queues.producers]]
+queue = "ragduh-queue-test"
+binding = "JOB_QUEUE"
+
+[[queues.consumers]]
+queue = "ragduh-queue-test"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 1
+dead_letter_queue = "ragduh-dlq-test"
+
+[[queues.consumers]]
+queue = "ragduh-dlq-test"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 0
+
+[vars]
+CF_GATEWAY_ID = "ragduh-gateway"
+CF_ACCOUNT_ID = "$CF_ACCOUNT_ID"
+EMBEDDING_MODEL = "@cf/baai/bge-m3"
+EMBEDDING_DIMENSION = 1024
+API_KEY = "$API_KEY"
+CF_AIG_TOKEN = "$CF_AIG_TOKEN"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true

@@ -1,0 +1,50 @@
+name = "ragduh-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "ragduh-db"
+database_id = "$D1_DATABASE_ID"
+
+# Vectorize Index binding
+[[vectorize]]
+binding = "RAGDUH_VECTORIZE_INDEX"
+index_name = "ragduh-vec"
+
+# Workers AI binding for embeddings
+[ai]
+binding = "AI"
+
+# Queue 配置
+[[queues.producers]]
+queue = "ragduh-queue"
+binding = "JOB_QUEUE"
+
+[[queues.consumers]]
+queue = "ragduh-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 1
+dead_letter_queue = "ragduh-dlq"
+
+[[queues.consumers]]
+queue = "ragduh-dlq"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 0
+
+[vars]
+CF_GATEWAY_ID = "ragduh-gateway"
+CF_ACCOUNT_ID = "$CF_ACCOUNT_ID"
+EMBEDDING_MODEL = "@cf/baai/bge-m3"
+EMBEDDING_DIMENSION = 1024
+API_KEY = "$API_KEY"
+CF_AIG_TOKEN = "$CF_AIG_TOKEN"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true

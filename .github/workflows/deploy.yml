@@ -1,0 +1,73 @@
+# 部署前后端到 Cloudflare
+#
+# 触发条件：手动触发
+name: Deploy App
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Cloudflare Wrangler
+        run: npm install -g wrangler
+
+      # ========== 部署后端 ==========
+      - name: Install API dependencies
+        working-directory: ./ragduh-api
+        run: npm ci
+
+      - name: Deploy API to Cloudflare Workers
+        working-directory: ./ragduh-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          API_KEY: ${{ secrets.API_KEY }}
+          CF_AIG_TOKEN: ${{ secrets.CF_AIG_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          sed -i "s|database_id = \"\$D1_DATABASE_ID\"|database_id = \"${D1_DATABASE_ID}\"|" wrangler.toml
+          sed -i "s|CF_ACCOUNT_ID = \"\$CF_ACCOUNT_ID\"|CF_ACCOUNT_ID = \"${CF_ACCOUNT_ID}\"|" wrangler.toml
+          sed -i "s|API_KEY = \"\$API_KEY\"|API_KEY = \"${API_KEY}\"|" wrangler.toml
+          sed -i "s|CF_AIG_TOKEN = \"\$CF_AIG_TOKEN\"|CF_AIG_TOKEN = \"${CF_AIG_TOKEN}\"|" wrangler.toml
+          wrangler deploy
+
+      # ========== 部署前端 ==========
+      - name: Install App dependencies
+        working-directory: ./ragduh-app
+        run: npm ci
+
+      - name: Build App
+        working-directory: ./ragduh-app
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+        run: npm run build
+
+      - name: Deploy App to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ragduh-app
+          directory: ./ragduh-app/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main

@@ -1,0 +1,51 @@
+# 部署 E2E 后端到 Cloudflare
+#
+# 触发条件：手动触发
+name: Deploy E2E API
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Cloudflare Wrangler
+        run: npm install -g wrangler
+
+      # ========== 部署 E2E 后端 ==========
+      - name: Install API dependencies
+        working-directory: ./ragduh-api
+        run: npm ci
+
+      - name: Deploy E2E API to Cloudflare Workers
+        working-directory: ./ragduh-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID_E2E: ${{ secrets.D1_DATABASE_ID_E2E }}
+          API_KEY: ${{ secrets.API_KEY }}
+          CF_AIG_TOKEN: ${{ secrets.CF_AIG_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          sed -i "s|database_id = \"\$D1_DATABASE_ID_E2E\"|database_id = \"${D1_DATABASE_ID_E2E}\"|" wrangler.e2e.toml
+          sed -i "s|CF_ACCOUNT_ID = \"\$CF_ACCOUNT_ID\"|CF_ACCOUNT_ID = \"${CF_ACCOUNT_ID}\"|" wrangler.e2e.toml
+          sed -i "s|API_KEY = \"\$API_KEY\"|API_KEY = \"${API_KEY}\"|" wrangler.e2e.toml
+          sed -i "s|CF_AIG_TOKEN = \"\$CF_AIG_TOKEN\"|CF_AIG_TOKEN = \"${CF_AIG_TOKEN}\"|" wrangler.e2e.toml
+          wrangler deploy --config wrangler.e2e.toml
