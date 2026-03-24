@@ -55,3 +55,11 @@ wrangler deploy
 - **Workers AI** - 嵌入模型推理
 - **Queues** - 异步任务队列
 - **AI Gateway** - AI 模型网关
+
+## 使用的模型
+
+| 类型 | 模型 | 说明 |
+|------|------|------|
+| 嵌入模型 | `@cf/baai/bge-m3` | BGE-M3 多语言向量嵌入 |
+| Reranker | `@cf/baai/bge-reranker-base` | BGE 重排序模型 |
+| LLM | `google:gemma-3-27b-it` | Google Gemma 3 27B 指令模型 |
