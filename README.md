@@ -52,8 +52,9 @@ wrangler deploy
 - **Pages** - 托管前端应用
 - **D1** - SQLite 数据库
 - **Vectorize** - 向量数据库
+- **R2** - 对象存储（文档原始内容备份）
 - **Workers AI** - 嵌入模型推理
-- **Queues** - 异步任务队列
+- **Queues** - 异步任务队列（文档嵌入、重新摄入）
 - **AI Gateway** - AI 模型网关
 
 ## 使用的模型
@@ -63,3 +64,16 @@ wrangler deploy
 | 嵌入模型 | `@cf/baai/bge-m3` | BGE-M3 多语言向量嵌入 |
 | Reranker | `@cf/baai/bge-reranker-base` | BGE 重排序模型 |
 | LLM | `google:gemma-3-27b-it` | Google Gemma 3 27B 指令模型 |
+
+## Queues 使用
+
+| 队列名称 | 用途 | 消费者配置 |
+|---------|------|-----------|
+| `ragduh-queue` | 文档摄入任务（嵌入、分块） | max_batch_size=10, max_batch_timeout=30s, max_retries=1 |
+| `ragduh-dlq` | 死信队列（处理失败的任务） | max_batch_size=10, max_retries=0 |
+
+**工作流程：**
+1. API 接收文档上传请求后，将原始文件上传至 **R2**，创建 ingest job 并发送到 `ragduh-queue`
+2. Ingest Worker 消费队列，执行：从 **R2** 获取原始文件 → 文档分块 → 生成 embeddings → 写入 D1 → 写入 Vectorize
+3. 失败任务进入 `ragduh-dlq` 死信队列
+4. 支持 re-ingest 功能重新处理任务（同样从 **R2** 获取内容）

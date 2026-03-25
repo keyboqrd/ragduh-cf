@@ -61,6 +61,17 @@ export async function processIngestJob(
           await storage.deleteFromVectorize(job.namespaceId, doc.id);
           // 清理 D1 chunks
           await storage.deleteDocumentChunks(doc.id);
+
+          // 清理 R2 数据
+          if (doc.source?.type === "R2" && doc.source.r2Key) {
+            console.log(`[Job ${jobId}] Cleaning up R2 object: ${doc.source.r2Key}`);
+            try {
+              await storage.deleteFromR2(doc.source.r2Key);
+            } catch (r2Error) {
+              console.error(`[Job ${jobId}] Failed to cleanup R2 object ${doc.source.r2Key}:`, r2Error);
+            }
+          }
+
           // 清理 Document 记录
           await storage.deleteDocument(doc.id, job.namespaceId);
         } catch (cleanupError) {
@@ -190,31 +201,38 @@ async function createDocumentForText(
   storage: any
 ): Promise<string> {
   const { text, fileName } = payload;
+  const content = text || "";
+  const name = fileName || "untitled.txt";
+
+  // 1. 上传到 R2
+  const r2Key = `namespaces/${namespaceId}/documents/${crypto.randomUUID()}-${name}`;
+  console.log(`[Job ${jobId}] Uploading text to R2: ${r2Key}`);
+  await storage.uploadToR2(r2Key, content);
 
   // 截取前 1KB 内容保存到 metadata（用于预览/搜索）
   const MAX_METADATA_SIZE = 1024; // 1KB
-  const contentPreview = text ? text.slice(0, MAX_METADATA_SIZE) : "";
+  const contentPreview = content.slice(0, MAX_METADATA_SIZE);
 
   const [document] = await storage.createDocuments({
     namespaceId,
     ingestJobId: jobId,
     documents: [{
-      name: fileName || "untitled.txt",
-      source: { type: "TEXT", text: text || "" },
-      totalCharacters: text?.length || 0,
+      name,
+      source: { type: "R2", r2Key },
+      totalCharacters: content.length,
       documentProperties: {
-        fileSize: text?.length || 0,
+        fileSize: content.length,
         mimeType: "text/plain",
         metadata: {
           contentPreview: contentPreview,
-          previewTruncated: (text?.length || 0) > MAX_METADATA_SIZE,
+          previewTruncated: content.length > MAX_METADATA_SIZE,
         },
       },
       status: "QUEUED",
     }],
   });
 
-  console.log(`[Job ${jobId}] Document created: ${document.id}`);
+  console.log(`[Job ${jobId}] Document created: ${document.id}, stored in R2: ${r2Key}`);
   return document.id;
 }
 
@@ -233,6 +251,11 @@ async function createDocumentForFile(
   const { downloadFile } = await import("../services/partition");
   const fileData = await downloadFile(fileUrl);
 
+  // 1. 上传到 R2
+  const r2Key = `namespaces/${namespaceId}/documents/${crypto.randomUUID()}-${fileName}`;
+  console.log(`[Job ${jobId}] Uploading file to R2: ${r2Key}`);
+  await storage.uploadToR2(r2Key, fileData.content);
+
   // 截取前 1KB 内容保存到 metadata（用于预览/搜索）
   const MAX_METADATA_SIZE = 1024; // 1KB
   const contentPreview = fileData.content.slice(0, MAX_METADATA_SIZE);
@@ -242,7 +265,7 @@ async function createDocumentForFile(
     ingestJobId: jobId,
     documents: [{
       name: fileName,
-      source: { type: "FILE", fileUrl },
+      source: { type: "R2", r2Key, originalUrl: fileUrl },
       totalCharacters: fileData.content.length,
       documentProperties: {
         fileSize: fileData.sizeInBytes,
@@ -256,7 +279,7 @@ async function createDocumentForFile(
     }],
   });
 
-  console.log(`[Job ${jobId}] Document created: ${document.id}`);
+  console.log(`[Job ${jobId}] Document created: ${document.id}, stored in R2: ${r2Key}`);
   return document.id;
 }
 
@@ -369,9 +392,10 @@ async function processSingleDocument(
     }
 
     const source = document.source as {
-      type: "TEXT" | "FILE";
+      type: "TEXT" | "FILE" | "R2";
       text?: string;
       fileUrl?: string;
+      r2Key?: string;
     };
 
     // 更新状态 → PRE_PROCESSING
@@ -385,6 +409,13 @@ async function processSingleDocument(
       const { downloadFile } = await import("../services/partition");
       const fileData = await downloadFile(source.fileUrl!);
       content = fileData.content;
+    } else if (source.type === "R2") {
+      console.log(`[Document ${documentId}] Downloading from R2: ${source.r2Key}`);
+      const r2Object = await storage.getFromR2(source.r2Key!);
+      if (!r2Object) {
+        throw new Error(`Document content not found in R2: ${source.r2Key}`);
+      }
+      content = await r2Object.text();
     } else {
       throw new Error(`Unsupported source type: ${(source as any).type}`);
     }
@@ -638,9 +669,10 @@ async function processSingleDocumentWithCleanup(
     }
 
     const source = document.source as {
-      type: "TEXT" | "FILE";
+      type: "TEXT" | "FILE" | "R2";
       text?: string;
       fileUrl?: string;
+      r2Key?: string;
     };
 
     // 清理旧的向量数据
@@ -665,6 +697,13 @@ async function processSingleDocumentWithCleanup(
       const { downloadFile } = await import("../services/partition");
       const fileData = await downloadFile(source.fileUrl!);
       content = fileData.content;
+    } else if (source.type === "R2") {
+      console.log(`[Document ${documentId}] Downloading from R2: ${source.r2Key}`);
+      const r2Object = await storage.getFromR2(source.r2Key!);
+      if (!r2Object) {
+        throw new Error(`Document content not found in R2: ${source.r2Key}`);
+      }
+      content = await r2Object.text();
     } else {
       throw new Error(`Unsupported source type: ${(source as any).type}`);
     }

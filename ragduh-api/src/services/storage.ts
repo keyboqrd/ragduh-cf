@@ -20,6 +20,7 @@ interface IVectorize {
 export interface StorageConfig {
   db: D1Database;
   vectorizeIndex: VectorizeIndex;
+  r2?: R2Bucket;
 }
 
 /**
@@ -28,10 +29,12 @@ export interface StorageConfig {
 export class StorageService {
   private database: DatabaseService;
   private vectorize: IVectorize;
+  public r2?: R2Bucket;
 
   constructor(config: StorageConfig) {
     this.database = new DatabaseService({ binding: config.db });
     this.vectorize = new VectorizeService({ binding: config.vectorizeIndex as VectorizeIndex }) as unknown as IVectorize;
+    this.r2 = config.r2;
   }
 
   // Database operations (via DatabaseService)
@@ -136,7 +139,8 @@ export class StorageService {
       this.database,
       jobId,
       namespaceId,
-      (nsId, docId) => this.vectorize.delete(nsId, docId)
+      (nsId, docId) => this.vectorize.delete(nsId, docId),
+      (key) => this.deleteFromR2(key)
     );
   }
 
@@ -145,7 +149,8 @@ export class StorageService {
       this.database,
       documentId,
       namespaceId,
-      (nsId, docId) => this.vectorize.delete(nsId, docId)
+      (nsId, docId) => this.vectorize.delete(nsId, docId),
+      (key) => this.deleteFromR2(key)
     );
   }
 
@@ -217,5 +222,27 @@ export class StorageService {
     text: string;
   }>): Promise<void> {
     return this.database.createDocumentChunks(chunks);
+  }
+
+  // R2 operations
+  async uploadToR2(key: string, data: string | ArrayBuffer | ReadableStream | Blob): Promise<void> {
+    if (!this.r2) {
+      throw new Error("R2 bucket not configured");
+    }
+    await this.r2.put(key, data);
+  }
+
+  async getFromR2(key: string): Promise<R2ObjectBody | null> {
+    if (!this.r2) {
+      throw new Error("R2 bucket not configured");
+    }
+    return await this.r2.get(key);
+  }
+
+  async deleteFromR2(key: string): Promise<void> {
+    if (!this.r2) {
+      throw new Error("R2 bucket not configured");
+    }
+    await this.r2.delete(key);
   }
 }

@@ -20,6 +20,7 @@ export function createAppServices(env: Env) {
   const storage = new StorageService({
     db: env.DB,
     vectorizeIndex: env.RAGDUH_VECTORIZE_INDEX as any,
+    r2: env.R2_BUCKET,
   });
 
   const embeddingService = new EmbeddingService({

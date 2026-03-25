@@ -36,6 +36,11 @@ max_batch_size = 10
 max_batch_timeout = 30
 max_retries = 0
 
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "ragduh-r2"
+
 [vars]
 CF_GATEWAY_ID = "ragduh-gateway"
 CF_ACCOUNT_ID = "$CF_ACCOUNT_ID"

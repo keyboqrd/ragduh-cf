@@ -137,7 +137,16 @@ export function DocumentList({ namespaceId, onError }: DocumentListProps) {
               <TableBody>
                 {documents?.data.map((doc) => (
                   <TableRow key={doc.id}>
-                    <TableCell className="font-medium truncate w-64">{doc.name}</TableCell>
+                    <TableCell className="font-medium truncate w-64">
+                      <div className="flex flex-col gap-1">
+                        <span className="truncate">{doc.name}</span>
+                        {doc.source?.type === "R2" && (
+                          <Badge variant="outline" className="w-fit text-[10px] py-0 px-1 border-primary/30 text-primary/70">
+                            R2 Stored
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="w-28">
                       <Badge variant={getStatusVariant(doc.status)}>{doc.status}</Badge>
                     </TableCell>

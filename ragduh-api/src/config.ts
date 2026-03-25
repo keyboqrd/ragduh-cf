@@ -13,6 +13,9 @@ export interface Env {
   // Queue binding
   JOB_QUEUE: Queue;
 
+  // R2 Bucket binding
+  R2_BUCKET: R2Bucket;
+
   // Environment variables
   ENVIRONMENT: string;
   API_KEY: string;

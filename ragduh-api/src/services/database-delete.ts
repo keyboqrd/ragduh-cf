@@ -67,7 +67,8 @@ export async function executeDeleteIngestJob(
   db: DatabaseService,
   jobId: string,
   namespaceId: string,
-  deleteFromVectorize: (namespaceId: string, documentId: string) => Promise<void>
+  deleteFromVectorize: (namespaceId: string, documentId: string) => Promise<void>,
+  deleteFromR2?: (key: string) => Promise<void>
 ): Promise<DeleteResult | null> {
   // Get job with documents
   const job = await db.db
@@ -80,7 +81,7 @@ export async function executeDeleteIngestJob(
   }
 
   const documents = await db.db
-    .prepare("SELECT id, totalPages FROM document WHERE ingestJobId = ?")
+    .prepare("SELECT id, totalPages, source FROM document WHERE ingestJobId = ?")
     .bind(jobId)
     .all<any>();
 
@@ -90,9 +91,20 @@ export async function executeDeleteIngestJob(
     .bind(jobId)
     .run();
 
-  // Delete from Vectorize
+  // Delete from Vectorize and R2
   for (const doc of documents.results || []) {
     await deleteFromVectorize(namespaceId, doc.id);
+
+    if (deleteFromR2 && doc.source) {
+      try {
+        const source = typeof doc.source === "string" ? JSON.parse(doc.source) : doc.source;
+        if (source.type === "R2" && source.r2Key) {
+          await deleteFromR2(source.r2Key);
+        }
+      } catch (e) {
+        console.error(`Failed to delete R2 object for document ${doc.id}:`, e);
+      }
+    }
   }
 
   const deletedDocuments = documents.results?.length || 0;
@@ -142,12 +154,13 @@ export async function executeDeleteDocument(
   db: DatabaseService,
   documentId: string,
   namespaceId: string,
-  deleteFromVectorize: (namespaceId: string, documentId: string) => Promise<void>
+  deleteFromVectorize: (namespaceId: string, documentId: string) => Promise<void>,
+  deleteFromR2?: (key: string) => Promise<void>
 ): Promise<any | null> {
   const document = await db.db
     .prepare("SELECT * FROM document WHERE id = ? AND namespaceId = ?")
     .bind(documentId, namespaceId)
-    .first();
+    .first<any>();
 
   if (!document) {
     return null;
@@ -159,6 +172,18 @@ export async function executeDeleteDocument(
     .run();
 
   await deleteFromVectorize(namespaceId, documentId);
+
+  // Delete from R2
+  if (deleteFromR2 && document.source) {
+    try {
+      const source = typeof document.source === "string" ? JSON.parse(document.source) : document.source;
+      if (source.type === "R2" && source.r2Key) {
+        await deleteFromR2(source.r2Key);
+      }
+    } catch (e) {
+      console.error(`Failed to delete R2 object for document ${documentId}:`, e);
+    }
+  }
 
   const totalPages = document.totalPages || 0;
 

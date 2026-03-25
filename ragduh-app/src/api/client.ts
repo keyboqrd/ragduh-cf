@@ -55,6 +55,12 @@ export interface Document {
   totalTokens: number;
   totalPages: number;
   createdAt: string;
+  source?: {
+    type: "TEXT" | "FILE" | "R2";
+    text?: string;
+    fileUrl?: string;
+    r2Key?: string;
+  };
   error?: string | null;
   totalCharacters?: number;
   documentProperties?: Record<string, unknown> | null;
