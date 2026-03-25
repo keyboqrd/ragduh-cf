@@ -38,6 +38,8 @@
 - Account.Cloudflare Pages: Edit
 - Account.D1: Edit
 - Account.Vectorize: Edit
+- Account.Workers R2 Storage: Edit
+
 
 ## 创建 D1 数据库
 
