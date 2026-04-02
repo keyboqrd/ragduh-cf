@@ -39,13 +39,6 @@ wrangler deploy
 2. 执行 D1 Migration
 3. 运行 Deploy App 工作流
 
-## 文档
-
-| 文档 | 说明 |
-|------|------|
-| [LOCAL_DEPLOY.md](ragduh-api/LOCAL_DEPLOY.md) | 本地部署到 Cloudflare 远程环境 |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | GitHub Actions 自动部署 |
-
 ## Cloudflare 服务
 
 - **Workers** - 运行 API 代码
